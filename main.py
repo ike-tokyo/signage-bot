@@ -5,52 +5,84 @@ from playwright.sync_api import sync_playwright
 FTP_HOST = os.environ["FTP_HOST"]
 FTP_USER = os.environ["FTP_USER"]
 FTP_PASS = os.environ["FTP_PASS"]
-FTP_DIR  = "/shintoshi-signage.com/public_html/ajax-contents/img/" # Xserverのパス
+FTP_DIR  = "/shintoshi-signage.com/public_html/ajax-contents/img/"
 
 # ターゲット設定
 targets = [
     {
         "url": "https://shintoshi-signage.com/ajax-contents/stock/",
-        "file": "stock.jpg",
+        "file": "stock-yoko.jpg",
+        "w": 1920,
+        "h": 1080
+    },    {
+        "url": "https://shintoshi-signage.com/ajax-contents/stock/",
+        "file": "stock-tate.jpg",
         "w": 1920,
         "h": 1080
     },
     {
-        "url": "https://shintoshi-signage.com/ajax-contents/weekweather2/",
+        "url": "https://shintoshi-signage.com/ajax-contents/fullhd/weather/",
         "file": "weather.jpg",
-        "w": 1080, # 縦型サイネージ用
+        "w": 1080,
         "h": 1920
     }
 ]
 
-# 普通のブラウザに見せかけるための「名刺」
+# 普通のブラウザに見せかける設定
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 def run():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # ブラウザ起動オプション（自動化検知の回避）
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                '--disable-blink-features=AutomationControlled',
+                '--no-sandbox',
+                '--disable-setuid-sandbox'
+            ]
+        )
         
         for t in targets:
-            # ここでUser Agentを設定してページを開く
-            page = browser.new_page(
+            # コンテキスト作成時にヘッダー情報を追加
+            context = browser.new_context(
                 viewport={"width": t['w'], "height": t['h']},
-                user_agent=USER_AGENT
+                user_agent=USER_AGENT,
+                locale='ja-JP',
+                timezone_id='Asia/Tokyo',
+                extra_http_headers={
+                    # 「このサイトの中からリクエストしてますよ」という証明書
+                    "Referer": "https://shintoshi-signage.com/",
+                    "Accept-Language": "ja,en-US;q=0.9,en;q=0.8"
+                }
             )
+            
+            page = context.new_page()
+
+            # Webdriverフラグの削除
+            page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
             print(f"Loading: {t['url']}")
             page.goto(t['url'])
             
-            # 読み込み待ち（データ取得エラーを防ぐため20秒に延長）
-            page.wait_for_timeout(20000)
+            # データ読み込み完了を待つ（念の為10秒）
+            # ネットワーク通信がなくなるまで待機
+            try:
+                page.wait_for_load_state("networkidle", timeout=10000)
+            except:
+                print("Network idle timeout, but taking screenshot anyway.")
+            
+            # 追加で少し待つ（描画アニメーション用）
+            page.wait_for_timeout(3000)
             
             page.screenshot(path=t['file'], type='jpeg', quality=90)
             print(f"Captured: {t['file']}")
             
-            page.close() # ページを閉じる
+            context.close()
             
         browser.close()
 
-    # FTPアップロード処理
+    # FTPアップロード
     print("Uploading to FTP...")
     try:
         ftp = ftplib.FTP(FTP_HOST)
