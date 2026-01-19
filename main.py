@@ -17,8 +17,8 @@ targets = [
     },    {
         "url": "https://shintoshi-signage.com/ajax-contents/stock/",
         "file": "stock-tate.jpg",
-        "w": 1920,
-        "h": 1080
+        "w": 1080,
+        "h": 1920
     },
     {
         "url": "https://shintoshi-signage.com/ajax-contents/fullhd/weather/",
