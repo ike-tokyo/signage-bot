@@ -1,0 +1,31 @@
+name: Signage Screenshot Update
+
+on:
+  schedule:
+    # 日本時間で朝8時〜18時の間、20分おきに実行する設定例（UTC表記なので-9時間）
+    # 23:00 UTC = 08:00 JST, 09:00 UTC = 18:00 JST
+    - cron: '*/20 23-9 * * *'
+  workflow_dispatch: # 手動実行ボタンも有効化
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install chromium
+          
+      - name: Run screenshot script
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASS: ${{ secrets.FTP_PASS }}
+        run: python main.py
