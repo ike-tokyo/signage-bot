@@ -2,10 +2,9 @@ name: Signage Screenshot Update
 
 on:
   schedule:
-    - cron: '*/30 21-23 * * *'
-    - cron: '*/30 0-14 * * *'
+    # 毎日 朝6:00 〜 夜23:30 (日本時間)
+    - cron: '*/30 21-23,0-14 * * *'
   workflow_dispatch:
-
 
 jobs:
   build:
@@ -18,6 +17,13 @@ jobs:
         with:
           python-version: '3.9'
           
+      # ▼▼▼ 追加した部分ここから ▼▼▼
+      - name: Install Japanese fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+      # ▲▲▲ 追加した部分ここまで ▲▲▲
+
       - name: Install dependencies
         run: |
           pip install playwright
