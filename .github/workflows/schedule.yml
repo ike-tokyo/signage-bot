@@ -2,10 +2,10 @@ name: Signage Screenshot Update
 
 on:
   schedule:
-    # 日本時間で朝8時〜18時の間、20分おきに実行する設定例（UTC表記なので-9時間）
-    # 23:00 UTC = 08:00 JST, 09:00 UTC = 18:00 JST
-  - cron: '*/30 21-23,0-14 * * *'
-  workflow_dispatch: # 手動実行ボタンも有効化
+    - cron: '*/30 21-23 * * *'
+    - cron: '*/30 0-14 * * *'
+  workflow_dispatch:
+
 
 jobs:
   build:
